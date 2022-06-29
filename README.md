@@ -21,8 +21,8 @@ host_pass=''
 remote_dir=''  #unknown if needs trailing slash
 local_dir=''  #needs trailing slash
 
-path_to_list='filemover.list'
-path_to_queue='filemover.queue'
+path_to_list='filemover.list'  #should include the file name you want to use
+path_to_queue='filemover.queue'  #should include the file name you want to use
 ```
 
 make sure to set permissions to 600 and user:group to user whose crontab will run process
