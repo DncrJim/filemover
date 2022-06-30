@@ -1,6 +1,8 @@
 Development of bash code to automatically download remote files and folders as they are moved into a directory. Access is via sftp and process is designed to be executed by cron and run continuously
 
-lftp is a dependency
+dependencies
+lftp
+bash
 
 #things to check/confirm
 should remote device url be prefixed with sftp in config?
@@ -33,7 +35,7 @@ make sure to set permissions to 600 and user:group to user whose crontab will ru
 needs wait added after reboot
 needs to have a periodic check to see if task is running and restart if not
 ```
-@reboot /bin/bash ~/filemover.sh
+@reboot sleep 600 && /bin/bash ~/filemover.sh
 ```
 
 #other
