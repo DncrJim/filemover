@@ -12,13 +12,12 @@
 
 #if filemover.list doesn't exist, create it
    if [[ ! -f "$path_to_list" ]] ; then
-     touch $path_to_list
+     touch "$path_to_list"
      echo "filemover.list created"
    fi
 
 while true
 do
-
 
   #get remote list of files in directory
   lftp -u $host_user,$host_pass $host_url <<EOF
