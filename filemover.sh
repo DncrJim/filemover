@@ -12,17 +12,16 @@
 
 #if filemover.list doesn't exist, create it
    if [[ ! -f "$path_to_list" ]] ; then
-     touch $path_to_list
+     touch "$path_to_list"
      echo "filemover.list created"
    fi
 
 while true
 do
 
-
   #get remote list of files in directory
   lftp -u $host_user,$host_pass $host_url <<EOF
-  ls files | cut -c 44- | grep -v ".meta" > filemover.temp
+  ls $remote_dir | cut -c 44- | grep -v ".meta" > filemover.temp
   exit
 EOF
 
@@ -38,7 +37,19 @@ EOF
     do
         read -r filepath < "$path_to_queue"
 
-      #if $filepath is empty, break loop
+      #if $filepath is empty, remove row, and try again
+      if [[ -z "$filepath" ]] ; then
+          sed -i 1d "$path_to_queue"
+          read -r filepath < "$path_to_queue"
+      fi
+
+      #if filepath is empty, remove row, try again
+      if [[ -z "$filepath" ]] ; then
+          sed -i 1d "$path_to_queue"
+          read -r filepath < "$path_to_queue"
+      fi
+
+      #if filepath is empty, break loop
       if [[ -z "$filepath" ]] ; then
           break
       else
@@ -52,20 +63,30 @@ EOF
       fi
     #confirm no error on transfer
       if [[ $? -ne 0 ]] ; then
-          echo "error mv $filepath"
+          echo "error mv $filepath" | mail -s "filemover ERROR" root
+
+          #should set variable so that sleep only happens if error occurs two times in a row
+
+          #copy first line of queue to end of queue
+          echo "$filepath" >> "$path_to_queue"
+          #delete first line from queue
+          sed -i 1d "$path_to_queue"
+          sleep 600
+
         else
-          echo "success $filepath"
-          echo "$filepath" >> $path_to_list
+          echo "success $filepath" | mail -s "filemover success" root
+          echo "$filepath" >> "$path_to_list"
         #delete line from queue
-          sed -i 1d $path_to_queue
+          sed -i 1d "$path_to_queue"
       fi
+      sleep 10
   done
 
 
-	if [[ ! -s $path_to_queue ]] ; then
-
+	if [[ ! -s "$path_to_queue" ]] ; then
+    echo "filemover reached end and queue is empty!" | mail -s "filemover success" root
   else
-    mail -s "filemover reached end and queue is not empty!" root
+    echo "filemover reached end and queue is not empty!" | mail -s "filemover ERROR" root
   fi
 
 sleep 600
