@@ -60,7 +60,7 @@ EOF
       else
           tried_to_process_file=1
       #if filepath has one of these endings, use get, otherwise use mirror.
-          if [[ $filepath =~ .*\.(mp4|mkv|avi|webm|flv|vob|mts|m2ts|ts|mov|wmv|m4p|m4v|mpg|mpeg) ]] ; then
+          if [[ "$filepath" =~ .*\.(mp4|mkv|avi|webm|flv|vob|mts|m2ts|ts|mov|wmv|m4p|m4v|mpg|mpeg) ]] ; then
               lftp -u $host_user,$host_pass -e "get -c '$remote_dir$filepath' -o '$local_dir$filepath';quit;" $host_url
           else
               lftp -u $host_user,$host_pass -e "mirror -c --parallel=3 --verbose '$remote_dir$filepath' $local_dir;quit;" $host_url
@@ -69,6 +69,15 @@ EOF
     #confirm no error on transfer
       if [[ $? -ne 0 ]] ; then
           echo "error mv $filepath" | mail -s "filemover ERROR" root
+
+          #should set variable so that sleep only happens if error occurs two times in a row
+
+          #copy first line of queue to end of queue
+          echo "$filepath" >> "$path_to_queue"
+          #delete first line from queue
+          sed -i 1d "$path_to_queue"
+          sleep 600
+
         else
           echo "success $filepath" | mail -s "filemover success" root
           echo "$filepath" >> "$path_to_list"
