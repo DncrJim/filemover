@@ -24,10 +24,11 @@
      echo "filemover.list created"
    fi
 
-#generate variable for error code only if it hasn't already been set
-  if [[ ! -v $has_thrown_queue_error_b4 ]] ; then
-    has_thrown_queue_error_b4=0
-  fi
+#set all variables to 0
+error_queue_not_empty=0
+tried_to_process_file=0
+transfer_error_count=0
+
 
 while true
 do
@@ -62,36 +63,39 @@ EOF
           read -r filepath < "$path_to_queue"
       fi
 
-      #if filepath is empty, break loop
+      #if filepath is empty, break while
       if [[ -z "$filepath" ]] ; then
           break
       else
           tried_to_process_file=1
       #if filepath has one of these endings, use get, otherwise use mirror.
           if [[ "$filepath" =~ .*\.(mp4|mkv|avi|webm|flv|vob|mts|m2ts|ts|mov|wmv|m4p|m4v|mpg|mpeg) ]] ; then
-              lftp -u $host_user,$host_pass -e "get -c $remote_dir$filepath -o $local_dir$filepath ;quit;" $host_url
-              #lftp -u $host_user,$host_pass -e "get -c \"$remote_dir$filepath\" -o \"$local_dir$filepath\" ;quit;" $host_url     #alternate
-
+              lftp -u $host_user,$host_pass -e "get -c \"$remote_dir$filepath\" -o \"$local_dir$filepath\" ; quit;" $host_url
           else
-              lftp -u $host_user,$host_pass -e "mirror -c --parallel=3 --verbose '$remote_dir$filepath' $local_dir;quit;" $host_url
+              lftp -u $host_user,$host_pass -e "mirror -c --parallel=3 --verbose \"$remote_dir$filepath\" \"$local_dir\" ; quit;" $host_url
           fi
       fi
     #confirm no error on transfer
       if [[ $? -ne 0 ]] ; then
-          echo "error mv $filepath" | mail -s "filemover ERROR" root
 
-          #should set variable so that sleep only happens if error occurs two times in a row
+          #increase counter by 1
+          transfer_error_count++
 
-          #copy first line of queue to end of queue
+          if [ $transfer_error_count == 1 ]; then
+              echo "error moving $filepath!\nThis message will not be sent again until all files are removed from queue.\nThis may not be the only file throwing an error" | mail -s "filemover ERROR" root
+          fi
+
+          #copy first line of queue to end of queue and then remove from first line of queue, rotating error to the bottom
           echo "$filepath" >> "$path_to_queue"
-          #delete first line from queue
           sed -i 1d "$path_to_queue"
-          sleep 600
 
-        else
+          # if there have been more than 3 errors since the last time the queue was empty, it will wait one hour after each additional error until queue empty
+          if [[ $transfer_error_count -ge 3 ]]; then sleep 3600; fi
+
+      else
           echo "success $filepath" | mail -s "filemover success" root
           echo "$filepath" >> "$path_to_list"
-        #delete line from queue
+          #delete line from queue
           sed -i 1d "$path_to_queue"
       fi
       sleep 10
@@ -100,11 +104,14 @@ EOF
 
 	if [[ ! -s "$path_to_queue" ]] ; then
     if [ $tried_to_process_file == 1 ]; then echo "filemover reached end and queue is empty!" | mail -s "filemover success" root; fi
+
   else
-    if [ $has_thrown_queue_error_b4 == 0 ]; then echo "filemover reached end and queue is not empty!" | mail -s "filemover ERROR" root; fi
-    has_thrown_queue_error_b4=1
+    if [ $error_queue_not_empty == 0 ]; then echo "filemover reached end and queue is not empty!\nNote: this message will not send again until program has been restarted." | mail -s "filemover ERROR" root; fi
+    error_queue_not_empty=1
   fi
 
 tried_to_process_file=0
-sleep 600
+transfer_error_count=0
+
+sleep 600  #10 minutes
 done
