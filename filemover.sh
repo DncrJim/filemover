@@ -2,8 +2,16 @@
 
 #create config file if it doesn't exist
     if [ ! -f "filemover_config.sh" ] ; then
-      echo "host_url='sftp://ftp.domain.com'\nhost_user=''\nhost_pass=''\n\nremote_dir=''  #unknown if needs trailing slash\nlocal_dir=''  #needs trailing slash\n\npath_to_list='filemover.list'  #should include the file name you want to use\npath_to_queue='filemover.queue'  #should include the file name you want to use" > filemover_config.sh
-      echo "filemover_config.sh created, please edit the file to input your variables"
+      echo "host_url='sftp://ftp.domain.com'"  > filemover_config.sh
+      echo "host_user=''" >> filemover_config.sh
+      echo "host_pass=''" >> filemover_config.sh
+      echo "" >> filemover_config.sh
+      echo "remote_dir=''  #needs trailing slash" >> filemover_config.sh
+      echo "local_dir=''  #needs trailing slash" >> filemover_config.sh
+      echo "" >> filemover_config.sh
+      echo "path_to_list='filemover.list'  #should include the file name you want to use" >> filemover_config.sh
+      echo "path_to_queue='filemover.queue'  #should include the file name you want to use" >> filemover_config.sh
+      echo "filemover_config.sh created, please insert the values for all variables and run again."
      exit 0
    fi
 
@@ -61,9 +69,9 @@ EOF
           tried_to_process_file=1
       #if filepath has one of these endings, use get, otherwise use mirror.
           if [[ "$filepath" =~ .*\.(mp4|mkv|avi|webm|flv|vob|mts|m2ts|ts|mov|wmv|m4p|m4v|mpg|mpeg) ]] ; then
-              lftp -u $host_user,$host_pass -e "get -c '$remote_dir$filepath' -o '$local_dir$filepath';quit;" $host_url
+              lftp -u $host_user,$host_pass -e 'get -c "${remote_dir}${filepath}" -o "${local_dir}${filepath}";quit;' $host_url
           else
-              lftp -u $host_user,$host_pass -e "mirror -c --parallel=3 --verbose '$remote_dir$filepath' $local_dir;quit;" $host_url
+              lftp -u $host_user,$host_pass -e 'mirror -c -parallel=3 --verbose "{$remote_dir}${filepath}" "${local_dir}";quit;' $host_url
           fi
       fi
     #confirm no error on transfer
