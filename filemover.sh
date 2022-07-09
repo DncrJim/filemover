@@ -16,6 +16,11 @@
      echo "filemover.list created"
    fi
 
+#generate variable for error code only if it hasn't already been set
+  if [[ ! -v $has_thrown_queue_error_b4 ]] ; then
+    has_thrown_queue_error_b4=0
+  fi
+
 while true
 do
 
@@ -53,7 +58,7 @@ EOF
       if [[ -z "$filepath" ]] ; then
           break
       else
-
+          tried_to_process_file=1
       #if filepath has one of these endings, use get, otherwise use mirror.
           if [[ $filepath =~ .*\.(mp4|mkv|avi|webm|flv|vob|mts|m2ts|ts|mov|wmv|m4p|m4v|mpg|mpeg) ]] ; then
               lftp -u $host_user,$host_pass -e "get -c '$remote_dir$filepath' -o '$local_dir$filepath';quit;" $host_url
@@ -75,10 +80,12 @@ EOF
 
 
 	if [[ ! -s "$path_to_queue" ]] ; then
-    echo "filemover reached end and queue is empty!" | mail -s "filemover success" root
+    if [ $tried_to_process_file == 1 ]; then echo "filemover reached end and queue is empty!" | mail -s "filemover success" root; fi
   else
-    echo "filemover reached end and queue is not empty!" | mail -s "filemover ERROR" root
+    if [ $has_thrown_queue_error_b4 == 0 ]; then echo "filemover reached end and queue is not empty!" | mail -s "filemover ERROR" root; fi
+    has_thrown_queue_error_b4=1
   fi
 
+tried_to_process_file=0
 sleep 600
 done
