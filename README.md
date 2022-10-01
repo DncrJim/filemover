@@ -7,7 +7,6 @@ bash
 filemover.sh must be set to executable
 
 #things to do
-error when moving single file with ' in name
 update automatic generation of config file, make sure to set permissions to 600 and user:group to user whose crontab will run process
 should remote device url be prefixed with sftp in config?
 
