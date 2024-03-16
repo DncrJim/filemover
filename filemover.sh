@@ -2,7 +2,7 @@
 
 #create config file if it doesn't exist
     if [ ! -f "filemover_config.sh" ] ; then
-      echo "host_url='sftp://ftp.domain.com'"  > filemover_config.sh
+      echo "host_url='sftp://ftp.domain.com'  #confirmed with ftp:, not confirmed with sftp:, https:, use alternate under 'get remote list'"  > filemover_config.sh
       echo "host_user=''" >> filemover_config.sh
       echo "host_pass=''" >> filemover_config.sh
       echo "" >> filemover_config.sh
@@ -35,7 +35,8 @@ do
 
   #get remote list of files in directory
   lftp -u $host_user,$host_pass $host_url <<EOF
-  ls $remote_dir | cut -c 44- | grep -v ".meta" > filemover.temp
+  ls -1 $remote_dir | grep -v ".meta" > filemover.temp
+  #use this option if https: instead of ftp: ls $remote_dir | cut -c 44- | grep -v ".meta" > filemover.temp
   exit
 EOF
 
